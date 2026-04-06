@@ -1,0 +1,103 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html>
+<head>
+    <title>WiFi Login - NTSTN WiFi6</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400&display=swap" rel="stylesheet">
+    
+    <style>
+        body, html {
+            margin: 0; padding: 0; height: 100%; overflow: hidden;
+            font-family: 'Kanit', sans-serif; background-color: black;
+        }
+        #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; }
+        .container { display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2rem; border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 255, 70, 0.3);
+            width: 320px; text-align: center; backdrop-filter: blur(5px);
+        }
+        h2 { font-size: 1.2rem; margin-bottom: 1.5rem; color: #222; }
+        input {
+            width: 100%; padding: 12px; margin: 8px 0;
+            border: 1px solid #ccc; border-radius: 8px;
+            box-sizing: border-box; font-family: 'Kanit', sans-serif;
+        }
+        button {
+            width: 100%; padding: 12px; margin-top: 10px;
+            background-color: #1a1a1a; color: #00ff41;
+            border: 1px solid #00ff41; border-radius: 8px;
+            cursor: pointer; font-weight: bold; font-family: 'Kanit', sans-serif;
+        }
+        button:hover { background-color: #00ff41; color: #000; }
+        #error-msg { color: red; font-size: 0.8rem; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="container">
+        <div class="login-card">
+            <h2>เข้าสู่ระบบ .@ NTSTN WiFi6 เพื่อใช้งาน</h2>
+            <form id="loginForm">
+                <input type="text" id="user" placeholder="ชื่อผู้ใช้งาน" required>
+                <input type="password" id="pass" placeholder="รหัสผ่าน" required>
+                <button type="submit">เข้าใช้งาน</button>
+                <div id="error-msg">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!</div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- ส่วนที่ 1: Matrix Background (ภาษา C) ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+
+        const cCode = "#include <stdio.h> int main() { printf('NTSTN WiFi6'); return 0; } malloc(void*) free(ptr) while(1)";
+        const charArray = cCode.split("");
+        const fontSize = 16;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function draw() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#0F0";
+            ctx.font = fontSize + "px monospace";
+            drops.forEach((y, i) => {
+                const text = charArray[Math.floor(Math.random() * charArray.length)];
+                ctx.fillText(text, i * fontSize, y * fontSize);
+                if (y * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            });
+        }
+        setInterval(draw, 33);
+
+        // --- ส่วนที่ 2: ระบบ Fix Username/Password ---
+        document.getElementById('loginForm').onsubmit = function(e) {
+            e.preventDefault();
+            
+            // ตั้งค่า Username และ Password ที่คุณเอต้องการตรงนี้ครับ
+            const fixedUser = "Aey"; 
+            const fixedPass = "445566";
+
+            const inputUser = document.getElementById('user').value;
+            const inputPass = document.getElementById('pass').value;
+            const errorMsg = document.getElementById('error-msg');
+
+            if (inputUser === fixedUser && inputPass === fixedPass) {
+                alert("ยินดีด้วย! คุณเข้าสู่ระบบ NTSTN WiFi6 สำเร็จ");
+                // สามารถเปลี่ยนหน้าไปที่อื่นได้ เช่น window.location.href = "https://google.com";
+            } else {
+                errorMsg.style.display = "block";
+            }
+        };
+
+        window.onresize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    </script>
+</body>
+</html>
