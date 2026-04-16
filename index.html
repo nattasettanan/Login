@@ -1,6 +1,8 @@
-<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html lang="th">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WiFi Login - NTSTN WiFi6</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -8,31 +10,70 @@
     
     <style>
         body, html {
-            margin: 0; padding: 0; height: 100%; overflow: hidden;
-            font-family: 'Kanit', sans-serif; background-color: black;
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            overflow: hidden; background-color: black;
+            font-family: 'Kanit', sans-serif;
         }
-        #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; }
-        .container { display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .login-card {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 2rem; border-radius: 15px;
-            box-shadow: 0 0 30px rgba(0, 255, 70, 0.3);
-            width: 320px; text-align: center; backdrop-filter: blur(5px);
+        /* แก้ไขให้ Canvas อยู่ด้านหลังสุดแน่นอน */
+        #bg-canvas { 
+            position: absolute; 
+            top: 0; left: 0; 
+            z-index: 0; 
         }
-        h2 { font-size: 1.2rem; margin-bottom: 1.5rem; color: #222; }
+        .container { 
+            position: relative;
+            display: flex; justify-content: center; align-items: center; 
+            height: 100vh; 
+            z-index: 1; /* ให้ฟอร์มทับอยู่บน Matrix */
+        }
+                .login-card {
+            /* ปรับพื้นหลังให้เป็นสีดำเทาโปร่งแสง */
+            background: rgba(20, 20, 20, 0.85); 
+            padding: 2.5rem; border-radius: 15px;
+            /* ปรับเงาให้เป็นสีเขียวเรืองแสงจางๆ */
+            box-shadow: 0 0 40px rgba(0, 255, 70, 0.2); 
+            width: 320px; text-align: center; 
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 70, 0.3); /* เพิ่มขอบสีเขียวบางๆ */
+        }
+        h2 { 
+            font-size: 1.3rem; margin-bottom: 1.5rem; 
+            color: #00ff41; /* เปลี่ยนหัวข้อเป็นสีเขียว Matrix */
+        }
+        input {
+            width: 100%; padding: 12px; margin: 8px 0;
+            /* ปรับช่อง Input ให้มืดลง */
+            background: rgba(40, 40, 40, 0.9);
+            border: 1px solid #444; 
+            border-radius: 8px;
+            box-sizing: border-box; 
+            font-family: 'Kanit', sans-serif;
+            color: #fff; /* พิมพ์แล้วเป็นตัวหนังสือสีขาว */
+            font-size: 16px;
+        }
+        input::placeholder {
+            color: #888; /* สีของคำแนะนำในช่อง */
+        }
+        input:focus {
+            border-color: #00ff41;
+            outline: none;
+        }
+        h2: { font-size: 1.3rem; margin-bottom: 1.5rem; color: #1a1a1a; }
         input {
             width: 100%; padding: 12px; margin: 8px 0;
             border: 1px solid #ccc; border-radius: 8px;
             box-sizing: border-box; font-family: 'Kanit', sans-serif;
+            font-size: 16px; /* ป้องกันหน้าจอซูมใน iPhone */
         }
         button {
-            width: 100%; padding: 12px; margin-top: 10px;
-            background-color: #1a1a1a; color: #00ff41;
-            border: 1px solid #00ff41; border-radius: 8px;
+            width: 100%; padding: 12px; margin-top: 15px;
+            background-color: #000; color: #00ff41;
+            border: 2px solid #00ff41; border-radius: 8px;
             cursor: pointer; font-weight: bold; font-family: 'Kanit', sans-serif;
+            transition: 0.3s;
         }
         button:hover { background-color: #00ff41; color: #000; }
-        #error-msg { color: red; font-size: 0.8rem; margin-top: 10px; display: none; }
+        #error-msg { color: #ff0000; font-size: 0.85rem; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
@@ -41,63 +82,83 @@
 
     <div class="container">
         <div class="login-card">
-            <h2>เข้าสู่ระบบ .@ NTSTN WiFi6 เพื่อใช้งาน</h2>
+            <h2>เข้าสู่ระบบ .@ NTSTN WiFi6</h2>
             <form id="loginForm">
                 <input type="text" id="user" placeholder="ชื่อผู้ใช้งาน" required>
                 <input type="password" id="pass" placeholder="รหัสผ่าน" required>
-                <button type="submit">เข้าใช้งาน</button>
-                <div id="error-msg">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!</div>
+                <button type="submit">LOGIN</button>
+                <div id="error-msg">❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!</div>
             </form>
         </div>
     </div>
 
     <script>
-        // --- ส่วนที่ 1: Matrix Background (ภาษา C) ---
         const canvas = document.getElementById('bg-canvas');
         const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
-        const cCode = "#include <stdio.h> int main() { printf('NTSTN WiFi6'); return 0; } malloc(void*) free(ptr) while(1)";
-        const charArray = cCode.split("");
+        // ฟังก์ชันตั้งค่าขนาด Canvas
+        function setCanvasSize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        setCanvasSize();
+
+        const cCode = "010101 NTSTN WIFI6 #include <stdio.h> void main() { printf('ACCESS'); } 0x88 0x99".split("");
         const fontSize = 16;
-        const columns = canvas.width / fontSize;
-        const drops = Array(Math.floor(columns)).fill(1);
+        let columns = Math.floor(canvas.width / fontSize);
+        let drops = [];
+
+        // ฟังก์ชัน Reset ตัวอักษร
+        function initDrops() {
+            columns = Math.floor(canvas.width / fontSize);
+            drops = [];
+            for (let i = 0; i < columns; i++) {
+                drops[i] = Math.random() * -100; // ให้เริ่มตกจากตำแหน่งที่ต่างกัน
+            }
+        }
+        initDrops();
 
         function draw() {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+            // ปรับความจางของพื้นหลังเพื่อให้เห็นหางตัวอักษร
+            ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#0F0";
-            ctx.font = fontSize + "px monospace";
-            drops.forEach((y, i) => {
-                const text = charArray[Math.floor(Math.random() * charArray.length)];
-                ctx.fillText(text, i * fontSize, y * fontSize);
-                if (y * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
-                drops[i]++;
-            });
-        }
-        setInterval(draw, 33);
 
-        // --- ส่วนที่ 2: ระบบ Fix Username/Password ---
+            ctx.fillStyle = "#0F0"; // สีเขียว Matrix
+            ctx.font = fontSize + "px monospace";
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = cCode[Math.floor(Math.random() * cCode.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        // เริ่มรัน Animation
+        setInterval(draw, 40);
+
+        // จัดการเมื่อมีการเปลี่ยนขนาดหน้าจอ (เช่น หมุนมือถือ)
+        window.addEventListener('resize', () => {
+            setCanvasSize();
+            initDrops();
+        });
+
+        // ระบบ Login
         document.getElementById('loginForm').onsubmit = function(e) {
             e.preventDefault();
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
             
-            // ตั้งค่า Username และ Password ที่คุณเอต้องการตรงนี้ครับ
-            const fixedUser = "Aey"; 
-            const fixedPass = "445566";
-
-            const inputUser = document.getElementById('user').value;
-            const inputPass = document.getElementById('pass').value;
-            const errorMsg = document.getElementById('error-msg');
-
-            if (inputUser === fixedUser && inputPass === fixedPass) {
-                alert("ยินดีด้วย! คุณเข้าสู่ระบบ NTSTN WiFi6 สำเร็จ");
-                // สามารถเปลี่ยนหน้าไปที่อื่นได้ เช่น window.location.href = "https://google.com";
+            if (u === "Aey" && p === "445566") {
+                alert("ยินดีด้วย! คุณเข้าสู่ระบบสำเร็จ");
+                window.location.href = "https://www.google.com";
             } else {
-                errorMsg.style.display = "block";
+                document.getElementById('error-msg').style.display = "block";
             }
         };
-
-        window.onresize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
     </script>
 </body>
 </html>
