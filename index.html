@@ -6,7 +6,7 @@
     <title>WiFi Login - NTSTN WiFi6</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     
     <style>
         body, html {
@@ -79,6 +79,7 @@
 <body>
 
     <canvas id="bg-canvas"></canvas>
+    <div class="cyber-overlay"></div>
 
     <div class="container">
         <div class="login-card">
@@ -89,6 +90,41 @@
                 <button type="submit">LOGIN</button>
                 <div id="error-msg">❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!</div>
             </form>
+
+            <div id="auth-feedback" class="auth-feedback" role="status" aria-live="polite"></div>
+
+            <!-- หน้าจอแสดงสถานะเมื่อเข้าสู่ระบบสำเร็จ -->
+            <div id="connected-panel" class="connected-panel">
+                <div class="session-grid">
+                    <div class="session-box">
+                        <span class="label">USER</span>
+                        <span class="val" id="connected-user">admin</span>
+                    </div>
+                    <div class="session-box">
+                        <span class="label">STATUS</span>
+                        <span class="val">ONLINE</span>
+                    </div>
+                    <div class="session-box">
+                        <span class="label">IP ADDRESS</span>
+                        <span class="val">192.168.6.104</span>
+                    </div>
+                    <div class="session-box">
+                        <span class="label">SESSION TIME</span>
+                        <span class="val" id="session-timer">00:00:00</span>
+                    </div>
+                </div>
+                <button type="button" id="logout-btn" class="logout-btn">ตัดการเชื่อมต่อ (Logout)</button>
+            </div>
+
+            <div class="card-footer">
+                <span>WPA3-ENTERPRISE // 5GHz</span>
+                <span style="display: inline-flex; align-items: center; gap: 6px;">
+                    <span>SIGNAL</span>
+                    <span class="signal-bars">
+                        <span></span><span></span><span></span><span></span>
+                    </span>
+                </span>
+            </div>
         </div>
     </div>
 
@@ -137,28 +173,136 @@
             }
         }
 
-        // เริ่มรัน Animation
-        setInterval(draw, 40);
+        const matrixInterval = setInterval(draw, 33);
 
-        // จัดการเมื่อมีการเปลี่ยนขนาดหน้าจอ (เช่น หมุนมือถือ)
         window.addEventListener('resize', () => {
-            setCanvasSize();
-            initDrops();
+            initMatrix();
         });
 
-        // ระบบ Login
-        document.getElementById('loginForm').onsubmit = function(e) {
-            e.preventDefault();
-            const u = document.getElementById('user').value;
-            const p = document.getElementById('pass').value;
-            
-            if (u === "Aey" && p === "445566") {
-                alert("ยินดีด้วย! คุณเข้าสู่ระบบสำเร็จ");
-                window.location.href = "https://www.google.com";
+        // ปุ่มแสดง/ซ่อนรหัสผ่าน
+        const passwordInput = document.getElementById('password-input');
+        const togglePwBtn = document.getElementById('toggle-pw-btn');
+        const eyeIcon = document.getElementById('eye-icon');
+
+        togglePwBtn.addEventListener('click', () => {
+            const isPassword = passwordInput.getAttribute('type') === 'password';
+            passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+            if (isPassword) {
+                eyeIcon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
             } else {
-                document.getElementById('error-msg').style.display = "block";
+                eyeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
             }
-        };
+        });
+
+        // ปุ่มสลับโหมดตัวอักษร Matrix
+        const matrixModeBtn = document.getElementById('matrix-mode-btn');
+        matrixModeBtn.addEventListener('click', () => {
+            currentModeIndex = (currentModeIndex + 1) % charModes.length;
+            charArray = charModes[currentModeIndex].chars.split("");
+            matrixModeBtn.textContent = "MODE: " + charModes[currentModeIndex].name;
+        });
+
+        // ==========================================
+        // ตั้งค่ารหัสผู้ใช้งานและรหัสผ่านแบบตายตัว (Fixed Single Account)
+        // สามารถแก้ไขค่า FIXED_USERNAME และ FIXED_PASSWORD ด้านล่างได้ทันที
+        // ==========================================
+        const FIXED_USERNAME = "admin";
+        const FIXED_PASSWORD = "1212312121";
+        const REDIRECT_URL = "https://www.google.co.th/"; // หากต้องการให้เด้งไปหน้าเว็บอื่นหลังล็อกอินผ่าน ให้ใส่ URL เช่น "https://www.google.com"
+
+        const loginForm = document.getElementById('wifi-login-form');
+        const loginCard = document.querySelector('.login-card');
+        const feedbackBox = document.getElementById('auth-feedback');
+        const submitText = document.getElementById('submit-text');
+        const connectedPanel = document.getElementById('connected-panel');
+        const connectedUser = document.getElementById('connected-user');
+        const sessionTimer = document.getElementById('session-timer');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        let timerInterval = null;
+        let secondsElapsed = 0;
+
+        function formatTime(totalSeconds) {
+            const hrs = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+            const mins = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+            const secs = String(totalSeconds % 60).padStart(2, '0');
+            return `${hrs}:${mins}:${secs}`;
+        }
+
+        function startSessionTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            secondsElapsed = 0;
+            sessionTimer.textContent = "00:00:00";
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                sessionTimer.textContent = formatTime(secondsElapsed);
+            }, 1000);
+        }
+
+        // โหลดค่าที่เคยจดจำไว้ (ถ้ามี)
+        try {
+            const savedUser = localStorage.getItem('ntstn_saved_user');
+            if (savedUser) {
+                document.getElementById('username-input').value = savedUser;
+                document.getElementById('remember-me').checked = true;
+            }
+        } catch (err) {}
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault(); // ตรวจสอบรหัสในหน้าเว็บทันที ไม่ต้องส่งไปฐานข้อมูลภายนอก
+
+            const user = document.getElementById('username-input').value.trim();
+            const pass = document.getElementById('password-input').value;
+            const remember = document.getElementById('remember-me').checked;
+
+            feedbackBox.classList.remove('error');
+            feedbackBox.classList.add('show');
+            submitText.textContent = 'กำลังตรวจสอบรหัส...';
+            feedbackBox.innerHTML = `> VERIFYING CREDENTIALS...<br>> TARGET: .@ NTSTN WiFi6`;
+
+            setTimeout(() => {
+                if (user === FIXED_USERNAME && pass === FIXED_PASSWORD) {
+                    try {
+                        if (remember) {
+                            localStorage.setItem('ntstn_saved_user', user);
+                        } else {
+                            localStorage.removeItem('ntstn_saved_user');
+                        }
+                    } catch (err) {}
+
+                    submitText.textContent = 'เข้าใช้งานเครือข่าย';
+                    feedbackBox.classList.remove('error');
+                    feedbackBox.innerHTML = `> ACCESS GRANTED: ยืนยันตัวตนสำเร็จ!<br>> ยินดีต้อนรับคุณ <strong>${user.replace(/[<>&"']/g, '')}</strong> เข้าสู่ .@ NTSTN WiFi6`;
+
+                    if (REDIRECT_URL) {
+                        window.location.href = REDIRECT_URL;
+                        return;
+                    }
+
+                    // แสดงแผงสถานะออนไลน์และซ่อนฟอร์ม
+                    loginForm.style.display = 'none';
+                    connectedUser.textContent = user;
+                    connectedPanel.classList.add('show');
+                    startSessionTimer();
+                } else {
+                    submitText.textContent = 'เข้าใช้งานเครือข่าย';
+                    feedbackBox.classList.add('error');
+                    feedbackBox.innerHTML = `> ACCESS DENIED: ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง!<br>> <span style="font-size:0.78rem;opacity:0.9;">(ค่าเริ่มต้นสำหรับทดสอบ: ชื่อผู้ใช้ <code>${FIXED_USERNAME}</code> / รหัสผ่าน <code>${FIXED_PASSWORD}</code>)</span>`;
+                    loginCard.classList.remove('shake');
+                    void loginCard.offsetWidth;
+                    loginCard.classList.add('shake');
+                }
+            }, 450);
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            if (timerInterval) clearInterval(timerInterval);
+            connectedPanel.classList.remove('show');
+            feedbackBox.classList.remove('show', 'error');
+            document.getElementById('password-input').value = '';
+            loginForm.style.display = 'block';
+        });
     </script>
 </body>
 </html>
+```
