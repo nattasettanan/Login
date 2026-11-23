@@ -3,597 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WiFi Login - .@ NTSTN WiFi6</title>
+    <title>WiFi Login - NTSTN WiFi6</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     
     <style>
-        :root {
-            --neon-green: #00ff41;
-            --neon-green-dim: #008f11;
-            --neon-green-glow: rgba(0, 255, 65, 0.45);
-            --card-bg: rgba(6, 15, 9, 0.82);
-            --input-bg: rgba(0, 20, 6, 0.75);
-            --text-main: #e8fff0;
-            --text-muted: #7aa885;
-            --danger: #ff3b5c;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            background-color: #000;
-            font-family: 'Kanit', -apple-system, BlinkMacSystemFont, sans-serif;
-            color: var(--text-main);
-            min-height: 100vh;
-            overflow-x: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            position: relative;
-        }
-
-        /* Canvas สำหรับพื้นหลัง Matrix */
-        #bg-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-            pointer-events: none;
-        }
-
-        /* Vignette & Scanline Overlay เพื่อเพิ่มมิติแนว Cyber */
-        .cyber-overlay {
-            position: fixed;
-            inset: 0;
-            background: 
-                radial-gradient(circle at center, transparent 35%, rgba(0, 0, 0, 0.78) 100%),
-                repeating-linear-gradient(
-                    0deg,
-                    rgba(0, 0, 0, 0.15) 0px,
-                    rgba(0, 0, 0, 0.15) 1px,
-                    transparent 1px,
-                    transparent 3px
-                );
-            z-index: 1;
-            pointer-events: none;
-        }
-
-        .container {
-            position: relative;
-            z-index: 2;
-            width: 100%;
-            max-width: 410px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .login-card {
-            width: 100%;
-            background: var(--card-bg);
-            padding: 2.2rem 2rem 1.8rem;
-            border-radius: 18px;
-            border: 1px solid rgba(0, 255, 65, 0.4);
-            box-shadow: 
-                0 0 28px rgba(0, 255, 65, 0.18),
-                0 15px 35px rgba(0, 0, 0, 0.85),
-                inset 0 0 20px rgba(0, 255, 65, 0.05);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .login-card:hover {
-            box-shadow: 
-                0 0 36px rgba(0, 255, 65, 0.28),
-                0 18px 40px rgba(0, 0, 0, 0.9),
-                inset 0 0 25px rgba(0, 255, 65, 0.08);
-        }
-
-        /* เส้นแสงวิบวับด้านบนการ์ด */
-        .login-card::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 200%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--neon-green), transparent);
-            animation: scanline-top 4s linear infinite;
-        }
-
-        @keyframes scanline-top {
-            0% { transform: translateX(-50%); }
-            100% { transform: translateX(50%); }
-        }
-
-        /* มุมกรอบสไตล์ HUD */
-        .hud-corner {
-            position: absolute;
-            width: 14px;
-            height: 14px;
-            border-color: var(--neon-green);
-            border-style: solid;
-            pointer-events: none;
-            opacity: 0.8;
-        }
-        .hud-tl { top: 10px; left: 10px; border-width: 2px 0 0 2px; border-top-left-radius: 6px; }
-        .hud-tr { top: 10px; right: 10px; border-width: 2px 2px 0 0; border-top-right-radius: 6px; }
-        .hud-bl { bottom: 10px; left: 10px; border-width: 0 0 2px 2px; border-bottom-left-radius: 6px; }
-        .hud-br { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; border-bottom-right-radius: 6px; }
-
-        /* โลโก้ WiFi 6 พร้อมคลื่นสัญญาณ */
-        .wifi-badge-wrap {
-            position: relative;
-            width: 78px;
-            height: 78px;
-            margin: 0 auto 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .pulse-ring {
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            border: 1.5px solid var(--neon-green);
-            opacity: 0;
-            animation: pulse 2.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-        }
-
-        .pulse-ring:nth-child(2) {
-            animation-delay: 1.4s;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(0.75); opacity: 0.75; }
-            100% { transform: scale(1.45); opacity: 0; }
-        }
-
-        .wifi-icon-circle {
-            width: 68px;
-            height: 68px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(0, 255, 65, 0.2) 0%, rgba(0, 30, 10, 0.9) 100%);
-            border: 1.5px solid var(--neon-green);
-            box-shadow: 0 0 18px var(--neon-green-glow);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            z-index: 1;
-        }
-
-        .wifi-icon-circle svg {
-            width: 34px;
-            height: 34px;
-            stroke: var(--neon-green);
-            filter: drop-shadow(0 0 6px var(--neon-green));
-        }
-
-        .wifi6-tag {
-            position: absolute;
-            bottom: -4px;
-            right: -6px;
-            background: #000;
-            color: var(--neon-green);
-            border: 1px solid var(--neon-green);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.65rem;
-            font-weight: 700;
-            padding: 1px 6px;
-            border-radius: 99px;
-            box-shadow: 0 0 8px var(--neon-green-glow);
-            z-index: 2;
-        }
-
-        /* แถบสถานะระบบ */
-        .status-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(0, 255, 65, 0.08);
-            border: 1px solid rgba(0, 255, 65, 0.3);
-            padding: 4px 12px;
-            border-radius: 999px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.72rem;
-            color: var(--neon-green);
-            margin-bottom: 0.75rem;
-            letter-spacing: 0.5px;
-        }
-
-        .status-dot {
-            width: 7px;
-            height: 7px;
-            background: var(--neon-green);
-            border-radius: 50%;
-            box-shadow: 0 0 8px var(--neon-green);
-            animation: blink 1.5s infinite;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.35; }
-        }
-
-        h2 {
-            font-size: 1.35rem;
-            font-weight: 600;
-            color: #ffffff;
-            margin-bottom: 0.35rem;
-            line-height: 1.4;
-            text-shadow: 0 0 12px rgba(0, 255, 65, 0.35);
-        }
-
-        h2 .ssid-highlight {
-            color: var(--neon-green);
-            font-family: 'JetBrains Mono', 'Kanit', monospace;
-            text-shadow: 0 0 10px var(--neon-green-glow);
-            display: inline-block;
-        }
-
-        .subtitle {
-            font-size: 0.86rem;
-            color: var(--text-muted);
-            margin-bottom: 1.5rem;
-            font-weight: 300;
-        }
-
-        /* ฟอร์มและช่องกรอกข้อมูล */
-        .input-group {
-            position: relative;
-            margin-bottom: 1rem;
-            text-align: left;
-        }
-
-        .input-label {
-            display: block;
-            font-size: 0.78rem;
-            color: #9cd6aa;
-            margin-bottom: 5px;
-            margin-left: 4px;
-            font-weight: 400;
-            letter-spacing: 0.3px;
-        }
-
-        .input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .input-icon {
-            position: absolute;
-            left: 14px;
-            width: 18px;
-            height: 18px;
-            color: var(--text-muted);
-            pointer-events: none;
-            transition: color 0.25s ease, filter 0.25s ease;
-        }
-
-        input[type="text"],
-        input[type="password"] {
-            width: 100%;
-            padding: 12px 42px 12px 42px;
-            background: var(--input-bg);
-            color: #fff;
-            border: 1px solid rgba(0, 255, 65, 0.3);
-            border-radius: 10px;
-            font-size: 0.95rem;
+        body, html {
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            overflow: hidden; background-color: black;
             font-family: 'Kanit', sans-serif;
-            outline: none;
-            transition: all 0.25s ease;
         }
-
+        /* แก้ไขให้ Canvas อยู่ด้านหลังสุดแน่นอน */
+        #bg-canvas { 
+            position: absolute; 
+            top: 0; left: 0; 
+            z-index: 0; 
+        }
+        .container { 
+            position: relative;
+            display: flex; justify-content: center; align-items: center; 
+            height: 100vh; 
+            z-index: 1; /* ให้ฟอร์มทับอยู่บน Matrix */
+        }
+                .login-card {
+            /* ปรับพื้นหลังให้เป็นสีดำเทาโปร่งแสง */
+            background: rgba(20, 20, 20, 0.85); 
+            padding: 2.5rem; border-radius: 15px;
+            /* ปรับเงาให้เป็นสีเขียวเรืองแสงจางๆ */
+            box-shadow: 0 0 40px rgba(0, 255, 70, 0.2); 
+            width: 320px; text-align: center; 
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 70, 0.3); /* เพิ่มขอบสีเขียวบางๆ */
+        }
+        h2 { 
+            font-size: 1.3rem; margin-bottom: 1.5rem; 
+            color: #00ff41; /* เปลี่ยนหัวข้อเป็นสีเขียว Matrix */
+        }
+        input {
+            width: 100%; padding: 12px; margin: 8px 0;
+            /* ปรับช่อง Input ให้มืดลง */
+            background: rgba(40, 40, 40, 0.9);
+            border: 1px solid #444; 
+            border-radius: 8px;
+            box-sizing: border-box; 
+            font-family: 'Kanit', sans-serif;
+            color: #fff; /* พิมพ์แล้วเป็นตัวหนังสือสีขาว */
+            font-size: 16px;
+        }
         input::placeholder {
-            color: rgba(122, 168, 133, 0.55);
-            font-weight: 300;
+            color: #888; /* สีของคำแนะนำในช่อง */
         }
-
         input:focus {
-            border-color: var(--neon-green);
-            background: rgba(0, 32, 10, 0.9);
-            box-shadow: 0 0 14px rgba(0, 255, 65, 0.25);
+            border-color: #00ff41;
+            outline: none;
         }
-
-        .input-wrapper:focus-within .input-icon {
-            color: var(--neon-green);
-            filter: drop-shadow(0 0 5px var(--neon-green-glow));
+        h2: { font-size: 1.3rem; margin-bottom: 1.5rem; color: #1a1a1a; }
+        input {
+            width: 100%; padding: 12px; margin: 8px 0;
+            border: 1px solid #ccc; border-radius: 8px;
+            box-sizing: border-box; font-family: 'Kanit', sans-serif;
+            font-size: 16px; /* ป้องกันหน้าจอซูมใน iPhone */
         }
-
-        /* ปุ่มแสดง/ซ่อนรหัสผ่าน */
-        .toggle-pw {
-            position: absolute;
-            right: 10px;
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            width: 32px;
-            height: 32px;
-            padding: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            border-radius: 6px;
-            transition: color 0.2s, background 0.2s;
+        button {
+            width: 100%; padding: 12px; margin-top: 15px;
+            background-color: #000; color: #00ff41;
+            border: 2px solid #00ff41; border-radius: 8px;
+            cursor: pointer; font-weight: bold; font-family: 'Kanit', sans-serif;
+            transition: 0.3s;
         }
-
-        .toggle-pw:hover {
-            color: var(--neon-green);
-            background: rgba(0, 255, 65, 0.1);
-        }
-
-        /* แถวตัวเลือกเสริม */
-        .form-options {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 0.2rem 0 1.25rem;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
-        .remember-label {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .remember-label input[type="checkbox"] {
-            appearance: none;
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            border: 1px solid rgba(0, 255, 65, 0.5);
-            border-radius: 4px;
-            background: var(--input-bg);
-            display: inline-grid;
-            place-content: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .remember-label input[type="checkbox"]::before {
-            content: "";
-            width: 9px;
-            height: 9px;
-            transform: scale(0);
-            transition: 0.15s transform ease-in-out;
-            box-shadow: inset 1em 1em var(--neon-green);
-            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
-        }
-
-        .remember-label input[type="checkbox"]:checked {
-            border-color: var(--neon-green);
-            box-shadow: 0 0 8px rgba(0, 255, 65, 0.35);
-        }
-
-        .remember-label input[type="checkbox"]:checked::before {
-            transform: scale(1);
-        }
-
-        .effect-btn {
-            background: rgba(0, 255, 65, 0.08);
-            border: 1px solid rgba(0, 255, 65, 0.28);
-            color: #9cd6aa;
-            font-family: 'JetBrains Mono', 'Kanit', sans-serif;
-            font-size: 0.72rem;
-            padding: 3px 9px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            width: auto;
-        }
-
-        .effect-btn:hover {
-            background: rgba(0, 255, 65, 0.18);
-            color: var(--neon-green);
-            border-color: var(--neon-green);
-        }
-
-        /* ปุ่ม Submit หลักแนว Hacker */
-        .submit-btn {
-            width: 100%;
-            padding: 13px 18px;
-            background: linear-gradient(180deg, rgba(0, 40, 12, 0.9) 0%, rgba(0, 18, 5, 0.95) 100%);
-            color: var(--neon-green);
-            border: 1.5px solid var(--neon-green);
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            font-family: 'Kanit', sans-serif;
-            letter-spacing: 0.5px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            box-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
-            transition: all 0.25s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .submit-btn:hover {
-            background: var(--neon-green);
-            color: #021206;
-            box-shadow: 0 0 25px rgba(0, 255, 65, 0.65);
-            transform: translateY(-1px);
-        }
-
-        .submit-btn:active {
-            transform: translateY(0);
-        }
-
-        .submit-btn svg {
-            width: 19px;
-            height: 19px;
-            transition: transform 0.25s ease;
-        }
-
-        .submit-btn:hover svg {
-            transform: translateX(4px);
-        }
-
-        /* กล่องแสดงสถานะจำลองการเชื่อมต่อ (สำหรับโหมดตัวอย่าง) */
-        .auth-feedback {
-            display: none;
-            margin-top: 1rem;
-            padding: 12px;
-            border-radius: 10px;
-            background: rgba(0, 255, 65, 0.1);
-            border: 1px solid rgba(0, 255, 65, 0.45);
-            font-size: 0.85rem;
-            color: var(--neon-green);
-            text-align: left;
-            font-family: 'JetBrains Mono', 'Kanit', monospace;
-            line-height: 1.5;
-        }
-
-        .auth-feedback.show {
-            display: block;
-            animation: fadeIn 0.25s ease;
-        }
-
-        .auth-feedback.error {
-            background: rgba(255, 59, 92, 0.12);
-            border-color: rgba(255, 59, 92, 0.6);
-            color: #ff6b84;
-            box-shadow: 0 0 15px rgba(255, 59, 92, 0.2);
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-6px); }
-            40%, 80% { transform: translateX(6px); }
-        }
-
-        .shake {
-            animation: shake 0.35s ease;
-        }
-
-        .connected-panel {
-            display: none;
-            margin-top: 0.5rem;
-            text-align: center;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .connected-panel.show {
-            display: block;
-        }
-
-        .session-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin: 1rem 0 1.25rem;
-            text-align: left;
-        }
-
-        .session-box {
-            background: rgba(0, 255, 65, 0.06);
-            border: 1px solid rgba(0, 255, 65, 0.28);
-            border-radius: 10px;
-            padding: 10px 12px;
-            font-family: 'JetBrains Mono', 'Kanit', monospace;
-        }
-
-        .session-box .label {
-            font-size: 0.68rem;
-            color: var(--text-muted);
-            display: block;
-            margin-bottom: 2px;
-        }
-
-        .session-box .val {
-            font-size: 0.88rem;
-            color: var(--neon-green);
-            font-weight: 600;
-        }
-
-        .logout-btn {
-            width: 100%;
-            padding: 11px 16px;
-            background: rgba(255, 59, 92, 0.12);
-            color: #ff6b84;
-            border: 1px solid rgba(255, 59, 92, 0.55);
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 0.92rem;
-            font-weight: 500;
-            font-family: 'Kanit', sans-serif;
-            transition: all 0.25s ease;
-        }
-
-        .logout-btn:hover {
-            background: var(--danger);
-            color: #fff;
-            box-shadow: 0 0 18px rgba(255, 59, 92, 0.5);
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* ส่วนท้ายการ์ด */
-        .card-footer {
-            margin-top: 1.4rem;
-            padding-top: 1rem;
-            border-top: 1px dashed rgba(0, 255, 65, 0.2);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.7rem;
-            color: var(--text-muted);
-        }
-
-        .signal-bars {
-            display: inline-flex;
-            align-items: flex-end;
-            gap: 2px;
-            height: 12px;
-        }
-
-        .signal-bars span {
-            width: 3px;
-            background: var(--neon-green);
-            border-radius: 1px;
-            box-shadow: 0 0 4px var(--neon-green-glow);
-        }
-        .signal-bars span:nth-child(1) { height: 4px; }
-        .signal-bars span:nth-child(2) { height: 7px; }
-        .signal-bars span:nth-child(3) { height: 10px; }
-        .signal-bars span:nth-child(4) { height: 12px; }
-
-        @media (max-width: 420px) {
-            .login-card {
-                padding: 1.8rem 1.35rem 1.4rem;
-            }
-            h2 {
-                font-size: 1.2rem;
-            }
-        }
+        button:hover { background-color: #00ff41; color: #000; }
+        #error-msg { color: #ff0000; font-size: 0.85rem; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
@@ -603,80 +83,12 @@
 
     <div class="container">
         <div class="login-card">
-            <span class="hud-corner hud-tl"></span>
-            <span class="hud-corner hud-tr"></span>
-            <span class="hud-corner hud-bl"></span>
-            <span class="hud-corner hud-br"></span>
-
-            <!-- โลโก้ WiFi 6 -->
-            <div class="wifi-badge-wrap">
-                <div class="pulse-ring"></div>
-                <div class="pulse-ring"></div>
-                <div class="wifi-icon-circle">
-                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
-                        <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
-                        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
-                        <line x1="12" y1="20" x2="12.01" y2="20"></line>
-                    </svg>
-                </div>
-                <span class="wifi6-tag">WiFi 6</span>
-            </div>
-
-            <div class="status-pill">
-                <span class="status-dot"></span>
-                <span>SECURE PORTAL // READY</span>
-            </div>
-
-            <h2>เข้าสู่ระบบ <span class="ssid-highlight">.@ NTSTN WiFi6</span></h2>
-            <p class="subtitle">กรุณายืนยันตัวตนเพื่อเชื่อมต่อเครือข่ายความเร็วสูง</p>
-
-            <form id="wifi-login-form" action="$auth_post" method="post">
-                <div class="input-group">
-                    <label class="input-label" for="username-input">ชื่อผู้ใช้งาน (Username)</label>
-                    <div class="input-wrapper">
-                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                        <input id="username-input" type="text" name="username" placeholder="กรอกชื่อผู้ใช้งาน" autocomplete="username" required>
-                    </div>
-                </div>
-
-                <div class="input-group">
-                    <label class="input-label" for="password-input">รหัสผ่าน (Password)</label>
-                    <div class="input-wrapper">
-                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
-                        <input id="password-input" type="password" name="password" placeholder="กรอกรหัสผ่าน" autocomplete="current-password" required>
-                        <button type="button" id="toggle-pw-btn" class="toggle-pw" aria-label="แสดงหรือซ่อนรหัสผ่าน" title="แสดง/ซ่อนรหัสผ่าน">
-                            <svg id="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="form-options">
-                    <label class="remember-label">
-                        <input type="checkbox" id="remember-me">
-                        <span>จดจำอุปกรณ์นี้</span>
-                    </label>
-                    <button type="button" id="matrix-mode-btn" class="effect-btn" title="สลับโหมดตัวอักษรพื้นหลัง">
-                        MODE: C-CODE
-                    </button>
-                </div>
-
-                <button type="submit" class="submit-btn" id="submit-btn">
-                    <span id="submit-text">เข้าใช้งานเครือข่าย</span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                        <polyline points="12 5 19 12 12 19"></polyline>
-                    </svg>
-                </button>
+            <h2>เข้าสู่ระบบ .@ NTSTN WiFi6</h2>
+            <form id="loginForm">
+                <input type="text" id="user" placeholder="ชื่อผู้ใช้งาน" required>
+                <input type="password" id="pass" placeholder="รหัสผ่าน" required>
+                <button type="submit">LOGIN</button>
+                <div id="error-msg">❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!</div>
             </form>
 
             <div id="auth-feedback" class="auth-feedback" role="status" aria-live="polite"></div>
@@ -720,66 +132,43 @@
         const canvas = document.getElementById('bg-canvas');
         const ctx = canvas.getContext('2d');
 
-        // โหมดตัวอักษรสำหรับพื้นหลัง Matrix
-        const charModes = [
-            {
-                name: 'C-CODE',
-                chars: "#include <stdio.h> int main() { printf('Hello NTSTN WiFi6'); return 0; } if(connection == 1) { access_granted(); } while(data_stream) { process(buffer); } void* ptr = malloc(sizeof(int));"
-            },
-            {
-                name: 'BINARY',
-                chars: "010011100101010001010011010101000100111000110110"
-            },
-            {
-                name: 'CYBER',
-                chars: "NTSTNWIFI60123456789ABCDEF<>/{}[]#$*+=-~^"
-            }
-        ];
-        let currentModeIndex = 0;
-        let charArray = charModes[currentModeIndex].chars.split("");
-
-        const fontSize = 16;
-        let columns = 0;
-        let drops = [];
-
-        function initMatrix() {
+        // ฟังก์ชันตั้งค่าขนาด Canvas
+        function setCanvasSize() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            columns = Math.ceil(canvas.width / fontSize);
-            const newDrops = [];
-            for (let x = 0; x < columns; x++) {
-                newDrops[x] = drops[x] !== undefined ? drops[x] : Math.floor(Math.random() * -30);
-            }
-            drops = newDrops;
         }
+        setCanvasSize();
 
-        initMatrix();
+        const cCode = "010101 NTSTN WIFI6 #include <stdio.h> void main() { printf('ACCESS'); } 0x88 0x99".split("");
+        const fontSize = 16;
+        let columns = Math.floor(canvas.width / fontSize);
+        let drops = [];
+
+        // ฟังก์ชัน Reset ตัวอักษร
+        function initDrops() {
+            columns = Math.floor(canvas.width / fontSize);
+            drops = [];
+            for (let i = 0; i < columns; i++) {
+                drops[i] = Math.random() * -100; // ให้เริ่มตกจากตำแหน่งที่ต่างกัน
+            }
+        }
+        initDrops();
 
         function draw() {
-            // วาดสี่เหลี่ยมสีดำโปร่งแสงทับเพื่อสร้างเอฟเฟกต์หางยาว
-            ctx.fillStyle = "rgba(0, 0, 0, 0.06)";
+            // ปรับความจางของพื้นหลังเพื่อให้เห็นหางตัวอักษร
+            ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            ctx.font = fontSize + "px 'JetBrains Mono', monospace";
+            ctx.fillStyle = "#0F0"; // สีเขียว Matrix
+            ctx.font = fontSize + "px monospace";
 
             for (let i = 0; i < drops.length; i++) {
-                const text = charArray[Math.floor(Math.random() * charArray.length)];
-                const x = i * fontSize;
-                const y = drops[i] * fontSize;
+                const text = cCode[Math.floor(Math.random() * cCode.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
 
-                // หัวแถวสว่างเป็นสีขาวอมเขียวให้ดูสมจริงขึ้น
-                if (Math.random() > 0.88) {
-                    ctx.fillStyle = "#b8ffcc";
-                } else {
-                    ctx.fillStyle = "#00ff41";
-                }
-
-                ctx.fillText(text, x, y);
-
-                if (y > canvas.height && Math.random() > 0.975) {
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
                     drops[i] = 0;
                 }
-
                 drops[i]++;
             }
         }
